@@ -3,54 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Han Dang | Link Rút Gọn</title>
+    <title>Han Dang | Rút Gọn Link & Tạo QR</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body {
-            background: #050505; color: #fff; height: 100vh;
+            background: #050505; color: #fff; min-height: 100vh;
             display: flex; justify-content: center; align-items: center;
-            text-align: center; padding: 20px;
+            padding: 20px;
         }
-        .box {
-            background: #101520; border: 1px solid #00ffcc; border-radius: 22px;
-            padding: 30px 24px; width: 350px; max-width: 92vw;
-            box-shadow: 0 0 35px rgba(0, 255, 204, 0.2);
+        .card {
+            background: #101520; border: 1px solid rgba(0, 255, 204, 0.4);
+            border-radius: 22px; padding: 26px 22px; width: 420px; max-width: 95vw;
+            box-shadow: 0 0 35px rgba(0, 255, 204, 0.18);
         }
         h1 {
-            font-size: 20px; letter-spacing: 1px; margin-bottom: 8px;
+            text-align: center; font-size: 20px; letter-spacing: 1px; margin-bottom: 6px;
             background: linear-gradient(90deg, #00ffcc, #fff, #ff007f);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        p { font-size: 13px; color: #aaa; margin-bottom: 18px; }
+        .subtitle { text-align: center; font-size: 12px; color: #888; margin-bottom: 18px; }
+
+        .label { display: block; font-size: 12px; color: #00ffcc; margin: 12px 0 5px; font-weight: 600; }
         input {
-            width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #333;
-            background: #050505; color: #00ffcc; text-align: center; font-size: 14px; outline: none;
+            width: 100%; padding: 11px 12px; border-radius: 10px;
+            border: 1px solid #2b3446; background: #060911; color: #fff;
+            font-size: 14px; outline: none;
         }
         input:focus { border-color: #00ffcc; }
-        button {
-            width: 100%; margin-top: 12px; padding: 12px; border-radius: 10px;
-            border: 1px solid #ff007f; background: rgba(255, 0, 127, 0.15);
-            color: #fff; font-weight: 600; cursor: pointer; transition: 0.2s;
+        .preview {
+            font-family: monospace; font-size: 12px; color: #ffd166;
+            margin-top: 6px; word-break: break-all;
         }
-        button:hover { background: rgba(255, 0, 127, 0.3); box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); }
+
+        .btn {
+            width: 100%; margin-top: 14px; padding: 12px; border-radius: 12px;
+            border: 1px solid #ff007f; background: rgba(255, 0, 127, 0.16);
+            color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .btn:hover { background: rgba(255, 0, 127, 0.32); box-shadow: 0 0 16px rgba(255, 0, 127, 0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-cyan {
+            border-color: #00ffcc; background: rgba(0, 255, 204, 0.14); color: #00ffcc;
+        }
+        .btn-cyan:hover { background: rgba(0, 255, 204, 0.28); color: #fff; box-shadow: 0 0 15px rgba(0, 255, 204, 0.35); }
+
+        .token-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255, 255, 255, 0.04); border: 1px solid #222a3a;
+            border-radius: 10px; padding: 8px 12px; font-size: 12px; color: #aaa;
+            margin-bottom: 12px;
+        }
+        .token-bar button {
+            background: none; border: none; color: #00ffcc; cursor: pointer;
+            font-size: 12px; font-weight: 600;
+        }
+        #tokenBox { display: none; margin-bottom: 12px; }
+
+        .status-msg { margin-top: 10px; font-size: 13px; text-align: center; min-height: 18px; }
+        .err { color: #ff4d6d; }
+        .ok { color: #00ffcc; }
+
+        #resultBox {
+            display: none; margin-top: 18px; padding: 16px;
+            background: rgba(0, 255, 204, 0.07); border: 1px solid rgba(0, 255, 204, 0.35);
+            border-radius: 14px; text-align: center;
+        }
+        .short-url-display {
+            font-family: monospace; font-size: 13px; color: #00ffcc;
+            background: #060911; padding: 10px; border-radius: 8px;
+            word-break: break-all; margin: 8px 0;
+        }
+        .action-row { display: flex; gap: 8px; margin-top: 8px; }
+        .action-row .btn { margin-top: 0; padding: 9px; font-size: 13px; }
+
+        #qrContainer {
+            display: inline-block; background: #fff; padding: 12px;
+            border-radius: 12px; margin-top: 14px;
+        }
+        .note { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>🔗 HAN DANG SHORT LINK</h1>
-        <p>Nhập tên mã rút gọn để đi thẳng tới đích</p>
-        <input type="text" id="codeInput" placeholder="Ví dụ: github, cv, fb...">
-        <button onclick="goLink()">🚀 ĐI TỚI LINK</button>
+    <div class="card">
+        <h1>🔗 HAN DANG SHORT LINK + QR</h1>
+        <p class="subtitle">Rút gọn link chính chủ & tạo mã QR vĩnh viễn</p>
+
+        <!-- Thanh trạng thái Token -->
+        <div class="token-bar">
+            <span id="tokenStatus">🔒 Chưa gắn GitHub Token</span>
+            <button onclick="toggleTokenBox()">Cài đặt Token</button>
+        </div>
+
+        <div id="tokenBox">
+            <input type="password" id="tokenInput" placeholder="Dán github_pat_... vào đây">
+            <button class="btn btn-cyan" style="margin-top: 8px; padding: 9px;" onclick="saveToken()">💾 Lưu Token vào trình duyệt</button>
+        </div>
+
+        <!-- Form tạo link rút gọn -->
+        <label class="label">1. Dán link dài cần rút gọn</label>
+        <input type="url" id="longUrl" placeholder="https://www.facebook.com/share/v/...">
+
+        <label class="label">2. Đặt tên cho link ngắn</label>
+        <input type="text" id="slugInput" placeholder="Ví dụ: tips xịn, cv, video1...">
+        <div class="preview" id="urlPreview">Link rút gọn: https://dnh2506-del.github.io/go/...</div>
+
+        <button class="btn" id="createBtn" onclick="createShortLink()">🚀 RÚT GỌN & TẠO MÃ QR</button>
+        <div class="status-msg" id="statusMsg"></div>
+
+        <!-- Kết quả Link + Mã QR -->
+        <div id="resultBox">
+            <div style="font-size: 13px; font-weight: 700; color: #fff;">✅ Đã tạo link vĩnh viễn!</div>
+            <div class="short-url-display" id="shortUrlText"></div>
+            <div class="action-row">
+                <button class="btn btn-cyan" onclick="copyShortUrl()">📋 Copy Link</button>
+                <button class="btn" onclick="downloadQR()">⬇️ Tải ảnh QR</button>
+            </div>
+            <div id="qrContainer"></div>
+            <p class="note">⏳ GitHub cần khoảng 30–60 giây để kích hoạt link mới. Sau đó link & mã QR sẽ dùng được vĩnh viễn!</p>
+        </div>
     </div>
 
     <script>
-        function goLink() {
-            const code = document.getElementById('codeInput').value.trim();
-            if (code) window.location.href = './' + encodeURIComponent(code);
+        const GITHUB_USER = 'dnh2506-del';
+        const GITHUB_REPO = 'go';
+        const BASE_URL = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
+        const TOKEN_KEY = 'handang_github_token';
+        let currentShortUrl = '';
+        let currentSlug = '';
+
+        function toSlug(str) {
+            return str
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
         }
-        document.getElementById('codeInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') goLink();
+
+        function decodeBase64UTF8(b64) {
+            const binary = atob(b64.replace(/\n/g, ''));
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
+        }
+
+        function encodeBase64UTF8(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            bytes.forEach(b => binary += String.fromCharCode(b));
+            return btoa(binary);
+        }
+
+        function updateTokenStatus() {
+            const token = localStorage.getItem(TOKEN_KEY);
+            const el = document.getElementById('tokenStatus');
+            if (token) {
+                el.innerHTML = '🟢 Đã kết nối GitHub Token';
+                el.style.color = '#00ffcc';
+            } else {
+                el.innerHTML = '🔒 Chưa gắn GitHub Token';
+                el.style.color = '#aaa';
+                document.getElementById('tokenBox').style.display = 'block';
+            }
+        }
+
+        function toggleTokenBox() {
+            const box = document.getElementById('tokenBox');
+            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function saveToken() {
+            const val = document.getElementById('tokenInput').value.trim();
+            if (!val) return;
+            localStorage.setItem(TOKEN_KEY, val);
+            document.getElementById('tokenInput').value = '';
+            document.getElementById('tokenBox').style.display = 'none';
+            updateTokenStatus();
+            setStatus('Đã lưu Token an toàn trên trình duyệt của bạn!', 'ok');
+        }
+
+        function setStatus(text, type) {
+            const el = document.getElementById('statusMsg');
+            el.textContent = text;
+            el.className = 'status-msg ' + (type || '');
+        }
+
+        document.getElementById('slugInput').addEventListener('input', (e) => {
+            const slug = toSlug(e.target.value);
+            document.getElementById('urlPreview').textContent =
+                'Link rút gọn: ' + BASE_URL + (slug || '...');
         });
+
+        async function createShortLink() {
+            const token = localStorage.getItem(TOKEN_KEY);
+            if (!token) {
+                document.getElementById('tokenBox').style.display = 'block';
+                setStatus('⚠️ Bạn cần dán GitHub Token trước nhé!', 'err');
+                return;
+            }
+
+            let longUrl = document.getElementById('longUrl').value.trim();
+            const slug = toSlug(document.getElementById('slugInput').value);
+
+            if (!longUrl) {
+                setStatus('⚠️ Vui lòng dán link dài trước!', 'err');
+                return;
+            }
+            if (!/^https?:\/\//i.test(longUrl)) {
+                longUrl = 'https://' + longUrl;
+            }
+            if (!slug) {
+                setStatus('⚠️ Vui lòng đặt tên cho link ngắn!', 'err');
+                return;
+            }
+
+            const btn = document.getElementById('createBtn');
+            btn.disabled = true;
+            setStatus('⏳ Đang lưu lên GitHub...', 'ok');
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/links.json`;
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github+json'
+                };
+
+                // 1. Đọc file links.json hiện tại
+                const getRes = await fetch(apiUrl, { headers });
+                if (!getRes.ok) {
+                    throw new Error('Không đọc được links.json — kiểm tra lại Token có quyền Contents (Read & Write) chưa nhé!');
+                }
+                const fileData = await getRes.json();
+                const links = JSON.parse(decodeBase64UTF8(fileData.content));
+
+                // 2. Thêm link mới và đẩy lên GitHub
+                links[slug] = longUrl;
+                const newContent = JSON.stringify(links, null, 2) + '\n';
+
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `Add short link: ${slug}`,
+                        content: encodeBase64UTF8(newContent),
+                        sha: fileData.sha
+                    })
+                });
+
+                if (!putRes.ok) {
+                    throw new Error('Lưu thất bại — kiểm tra lại quyền Read and write của Token!');
+                }
+
+                // 3. Hiển thị link rút gọn + vẽ mã QR
+                currentSlug = slug;
+                currentShortUrl = BASE_URL + slug;
+                document.getElementById('shortUrlText').textContent = currentShortUrl;
+                document.getElementById('resultBox').style.display = 'block';
+
+                const qrContainer = document.getElementById('qrContainer');
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: currentShortUrl,
+                    width: 190,
+                    height: 190,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                setStatus('🎉 Thành công! Link đã được lưu lên GitHub.', 'ok');
+            } catch (err) {
+                setStatus('❌ ' + err.message, 'err');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function copyShortUrl() {
+            navigator.clipboard.writeText(currentShortUrl);
+            setStatus('📋 Đã copy link: ' + currentShortUrl, 'ok');
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrContainer canvas');
+            if (!canvas) return;
+            const padded = document.createElement('canvas');
+            const pad = 20;
+            padded.width = canvas.width + pad * 2;
+            padded.height = canvas.height + pad * 2;
+            const ctx = padded.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, padded.width, padded.height);
+            ctx.drawImage(canvas, pad, pad);
+
+            const link = document.createElement('a');
+            link.download = `qr-${currentSlug || 'handang'}.png`;
+            link.href = padded.toDataURL('image/png');
+            link.click();
+        }
+
+        updateTokenStatus();
     </script>
 </body>
 </html>
