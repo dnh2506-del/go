@@ -9,12 +9,12 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
         body {
             background: #050505; color: #fff; min-height: 100vh;
-            display: flex; justify-content: center; align-items: center;
-            padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: 28px 16px;
         }
         .card {
             background: #101520; border: 1px solid rgba(0, 255, 204, 0.4);
-            border-radius: 22px; padding: 26px 22px; width: 420px; max-width: 95vw;
+            border-radius: 22px; padding: 26px 22px; width: 460px; max-width: 96vw;
             box-shadow: 0 0 35px rgba(0, 255, 204, 0.18);
         }
         h1 {
@@ -65,7 +65,7 @@
         .ok { color: #00ffcc; }
 
         #resultBox {
-            display: none; margin-top: 18px; padding: 16px;
+            display: none; margin-top: 16px; padding: 16px;
             background: rgba(0, 255, 204, 0.07); border: 1px solid rgba(0, 255, 204, 0.35);
             border-radius: 14px; text-align: center;
         }
@@ -82,6 +82,52 @@
             border-radius: 12px; margin-top: 14px;
         }
         .note { font-size: 11px; color: #999; margin-top: 10px; line-height: 1.4; }
+
+        /* Danh sách link đã tạo */
+        .list-section {
+            margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .list-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+        }
+        .list-title { font-size: 14px; font-weight: 700; color: #ffd166; }
+        .refresh-btn {
+            background: none; border: 1px solid #333; color: #aaa;
+            padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer;
+        }
+        .refresh-btn:hover { border-color: #00ffcc; color: #00ffcc; }
+        .link-list {
+            display: flex; flex-direction: column; gap: 8px;
+            max-height: 280px; overflow-y: auto; padding-right: 4px;
+        }
+        .link-item {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid #222a3a;
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .link-info { min-width: 0; flex: 1; }
+        .link-slug {
+            font-family: monospace; font-size: 13px; font-weight: 700;
+            color: #00ffcc; word-break: break-all;
+        }
+        .link-target {
+            font-size: 11px; color: #888;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+        .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .mini-btn {
+            padding: 6px 9px; border-radius: 8px; border: 1px solid #333;
+            background: #0b101b; color: #ddd; font-size: 12px; cursor: pointer; transition: 0.15s;
+        }
+        .mini-btn:hover { border-color: #00ffcc; color: #00ffcc; }
+        .mini-btn.del:hover { border-color: #ff4d6d; color: #ff4d6d; background: rgba(255, 77, 109, 0.12); }
+        .empty-list { text-align: center; font-size: 12px; color: #777; padding: 14px 0; }
     </style>
 </head>
 <body>
@@ -113,14 +159,25 @@
 
         <!-- Kết quả Link + Mã QR -->
         <div id="resultBox">
-            <div style="font-size: 13px; font-weight: 700; color: #fff;">✅ Đã tạo link vĩnh viễn!</div>
+            <div style="font-size: 13px; font-weight: 700; color: #fff;" id="resultTitle">✅ Đã tạo link vĩnh viễn!</div>
             <div class="short-url-display" id="shortUrlText"></div>
             <div class="action-row">
                 <button class="btn btn-cyan" onclick="copyShortUrl()">📋 Copy Link</button>
                 <button class="btn" onclick="downloadQR()">⬇️ Tải ảnh QR</button>
             </div>
             <div id="qrContainer"></div>
-            <p class="note">⏳ GitHub cần khoảng 30–60 giây để kích hoạt link mới. Sau đó link & mã QR sẽ dùng được vĩnh viễn!</p>
+            <p class="note">⏳ Link mới tạo hoặc vừa xóa sẽ cập nhật sau khoảng 30–60 giây trên GitHub Pages.</p>
+        </div>
+
+        <!-- Danh sách link đã lưu -->
+        <div class="list-section">
+            <div class="list-header">
+                <span class="list-title">📜 Danh sách link đã tạo (<span id="linkCount">0</span>)</span>
+                <button class="refresh-btn" onclick="loadLinksList()">🔄 Tải lại</button>
+            </div>
+            <div class="link-list" id="linkList">
+                <div class="empty-list">Đang tải danh sách...</div>
+            </div>
         </div>
     </div>
 
@@ -128,6 +185,7 @@
         const GITHUB_USER = 'dnh2506-del';
         const GITHUB_REPO = 'go';
         const BASE_URL = `https://${GITHUB_USER}.github.io/${GITHUB_REPO}/`;
+        const API_URL = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/links.json`;
         const TOKEN_KEY = 'handang_github_token';
         let currentShortUrl = '';
         let currentSlug = '';
@@ -182,6 +240,7 @@
             document.getElementById('tokenBox').style.display = 'none';
             updateTokenStatus();
             setStatus('Đã lưu Token an toàn trên trình duyệt của bạn!', 'ok');
+            loadLinksList();
         }
 
         function setStatus(text, type) {
@@ -190,11 +249,124 @@
             el.className = 'status-msg ' + (type || '');
         }
 
+        function showResultQR(slug, titleText) {
+            currentSlug = slug;
+            currentShortUrl = BASE_URL + slug;
+            document.getElementById('resultTitle').textContent = titleText || '📱 Mã QR của link rút gọn';
+            document.getElementById('shortUrlText').textContent = currentShortUrl;
+            document.getElementById('resultBox').style.display = 'block';
+
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: currentShortUrl,
+                width: 190,
+                height: 190,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         document.getElementById('slugInput').addEventListener('input', (e) => {
             const slug = toSlug(e.target.value);
             document.getElementById('urlPreview').textContent =
                 'Link rút gọn: ' + BASE_URL + (slug || '...');
         });
+
+        async function fetchLinksFromGitHub(token) {
+            const headers = { 'Accept': 'application/vnd.github+json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const res = await fetch(API_URL + '?t=' + Date.now(), { headers, cache: 'no-store' });
+            if (!res.ok) throw new Error('Không đọc được links.json — kiểm tra lại Token nhé!');
+            const fileData = await res.json();
+            return {
+                sha: fileData.sha,
+                links: JSON.parse(decodeBase64UTF8(fileData.content))
+            };
+        }
+
+        async function loadLinksList() {
+            const listEl = document.getElementById('linkList');
+            const countEl = document.getElementById('linkCount');
+            listEl.innerHTML = '<div class="empty-list">Đang tải danh sách...</div>';
+
+            try {
+                const token = localStorage.getItem(TOKEN_KEY);
+                let links = {};
+                if (token) {
+                    const data = await fetchLinksFromGitHub(token);
+                    links = data.links;
+                } else {
+                    const res = await fetch('./links.json?t=' + Date.now());
+                    links = await res.json();
+                }
+
+                const entries = Object.entries(links).reverse();
+                countEl.textContent = entries.length;
+                listEl.innerHTML = '';
+
+                if (entries.length === 0) {
+                    listEl.innerHTML = '<div class="empty-list">Chưa có link nào được lưu.</div>';
+                    return;
+                }
+
+                for (const [slug, url] of entries) {
+                    const item = document.createElement('div');
+                    item.className = 'link-item';
+
+                    const info = document.createElement('div');
+                    info.className = 'link-info';
+
+                    const slugEl = document.createElement('div');
+                    slugEl.className = 'link-slug';
+                    slugEl.textContent = '/' + slug;
+
+                    const targetEl = document.createElement('div');
+                    targetEl.className = 'link-target';
+                    targetEl.textContent = url;
+                    targetEl.title = url;
+
+                    info.appendChild(slugEl);
+                    info.appendChild(targetEl);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'item-actions';
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'mini-btn';
+                    copyBtn.textContent = '📋';
+                    copyBtn.title = 'Copy link ngắn';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(BASE_URL + slug);
+                        setStatus('📋 Đã copy: ' + BASE_URL + slug, 'ok');
+                    };
+
+                    const qrBtn = document.createElement('button');
+                    qrBtn.className = 'mini-btn';
+                    qrBtn.textContent = '📱';
+                    qrBtn.title = 'Xem & tải mã QR';
+                    qrBtn.onclick = () => showResultQR(slug, `📱 Mã QR cho /${slug}`);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'mini-btn del';
+                    delBtn.textContent = '🗑️';
+                    delBtn.title = 'Xóa link này';
+                    delBtn.onclick = () => deleteShortLink(slug);
+
+                    actions.appendChild(copyBtn);
+                    actions.appendChild(qrBtn);
+                    actions.appendChild(delBtn);
+
+                    item.appendChild(info);
+                    item.appendChild(actions);
+                    listEl.appendChild(item);
+                }
+            } catch (err) {
+                listEl.innerHTML = '<div class="empty-list">Không tải được danh sách. Bấm 🔄 Tải lại nhé!</div>';
+            }
+        }
 
         async function createShortLink() {
             const token = localStorage.getItem(TOKEN_KEY);
@@ -224,31 +396,21 @@
             setStatus('⏳ Đang lưu lên GitHub...', 'ok');
 
             try {
-                const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/links.json`;
-                const headers = {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/vnd.github+json'
-                };
-
-                // 1. Đọc file links.json hiện tại
-                const getRes = await fetch(apiUrl, { headers });
-                if (!getRes.ok) {
-                    throw new Error('Không đọc được links.json — kiểm tra lại Token có quyền Contents (Read & Write) chưa nhé!');
-                }
-                const fileData = await getRes.json();
-                const links = JSON.parse(decodeBase64UTF8(fileData.content));
-
-                // 2. Thêm link mới và đẩy lên GitHub
+                const { sha, links } = await fetchLinksFromGitHub(token);
                 links[slug] = longUrl;
                 const newContent = JSON.stringify(links, null, 2) + '\n';
 
-                const putRes = await fetch(apiUrl, {
+                const putRes = await fetch(API_URL, {
                     method: 'PUT',
-                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json',
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
                         message: `Add short link: ${slug}`,
                         content: encodeBase64UTF8(newContent),
-                        sha: fileData.sha
+                        sha
                     })
                 });
 
@@ -256,28 +418,57 @@
                     throw new Error('Lưu thất bại — kiểm tra lại quyền Read and write của Token!');
                 }
 
-                // 3. Hiển thị link rút gọn + vẽ mã QR
-                currentSlug = slug;
-                currentShortUrl = BASE_URL + slug;
-                document.getElementById('shortUrlText').textContent = currentShortUrl;
-                document.getElementById('resultBox').style.display = 'block';
-
-                const qrContainer = document.getElementById('qrContainer');
-                qrContainer.innerHTML = '';
-                new QRCode(qrContainer, {
-                    text: currentShortUrl,
-                    width: 190,
-                    height: 190,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-
+                showResultQR(slug, '✅ Đã tạo link vĩnh viễn!');
+                document.getElementById('longUrl').value = '';
+                document.getElementById('slugInput').value = '';
+                document.getElementById('urlPreview').textContent = 'Link rút gọn: ' + BASE_URL + '...';
                 setStatus('🎉 Thành công! Link đã được lưu lên GitHub.', 'ok');
+                loadLinksList();
             } catch (err) {
                 setStatus('❌ ' + err.message, 'err');
             } finally {
                 btn.disabled = false;
+            }
+        }
+
+        async function deleteShortLink(slug) {
+            const token = localStorage.getItem(TOKEN_KEY);
+            if (!token) {
+                document.getElementById('tokenBox').style.display = 'block';
+                setStatus('⚠️ Cần gắn GitHub Token để xóa link!', 'err');
+                return;
+            }
+            if (!confirm(`Bạn có chắc muốn xóa link /${slug} không?`)) return;
+
+            setStatus(`⏳ Đang xóa /${slug}...`, 'ok');
+            try {
+                const { sha, links } = await fetchLinksFromGitHub(token);
+                delete links[slug];
+                const newContent = JSON.stringify(links, null, 2) + '\n';
+
+                const putRes = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Delete short link: ${slug}`,
+                        content: encodeBase64UTF8(newContent),
+                        sha
+                    })
+                });
+
+                if (!putRes.ok) throw new Error('Xóa thất bại — kiểm tra lại Token!');
+
+                if (currentSlug === slug) {
+                    document.getElementById('resultBox').style.display = 'none';
+                }
+                setStatus(`🗑️ Đã xóa /${slug} khỏi GitHub!`, 'ok');
+                loadLinksList();
+            } catch (err) {
+                setStatus('❌ ' + err.message, 'err');
             }
         }
 
@@ -305,6 +496,7 @@
         }
 
         updateTokenStatus();
+        loadLinksList();
     </script>
 </body>
 </html>
