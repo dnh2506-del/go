@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Han Dang | Link Rút Gọn</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body {
+            background: #050505; color: #fff; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+        .box {
+            background: #101520; border: 1px solid #00ffcc; border-radius: 22px;
+            padding: 30px 24px; width: 350px; max-width: 92vw;
+            box-shadow: 0 0 35px rgba(0, 255, 204, 0.2);
+        }
+        h1 {
+            font-size: 20px; letter-spacing: 1px; margin-bottom: 8px;
+            background: linear-gradient(90deg, #00ffcc, #fff, #ff007f);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        p { font-size: 13px; color: #aaa; margin-bottom: 18px; }
+        input {
+            width: 100%; padding: 11px; border-radius: 10px; border: 1px solid #333;
+            background: #050505; color: #00ffcc; text-align: center; font-size: 14px; outline: none;
+        }
+        input:focus { border-color: #00ffcc; }
+        button {
+            width: 100%; margin-top: 12px; padding: 12px; border-radius: 10px;
+            border: 1px solid #ff007f; background: rgba(255, 0, 127, 0.15);
+            color: #fff; font-weight: 600; cursor: pointer; transition: 0.2s;
+        }
+        button:hover { background: rgba(255, 0, 127, 0.3); box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🔗 HAN DANG SHORT LINK</h1>
+        <p>Nhập tên mã rút gọn để đi thẳng tới đích</p>
+        <input type="text" id="codeInput" placeholder="Ví dụ: github, cv, fb...">
+        <button onclick="goLink()">🚀 ĐI TỚI LINK</button>
+    </div>
+
+    <script>
+        function goLink() {
+            const code = document.getElementById('codeInput').value.trim();
+            if (code) window.location.href = './' + encodeURIComponent(code);
+        }
+        document.getElementById('codeInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') goLink();
+        });
+    </script>
+</body>
+</html>
