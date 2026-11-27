@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang chuyển hướng... | Han Dang</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body {
+            background: #050505; color: #fff; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+        }
+        .box {
+            background: #101520; border: 1px solid #00ffcc; border-radius: 20px;
+            padding: 30px 25px; width: 340px; max-width: 92vw;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+        }
+        h2 { color: #00ffcc; font-size: 18px; margin-bottom: 10px; }
+        p { color: #aaa; font-size: 14px; line-height: 1.5; }
+        a.btn {
+            display: inline-block; margin-top: 16px; padding: 10px 20px;
+            border-radius: 10px; text-decoration: none; color: #fff; font-weight: 600;
+            background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc;
+        }
+        a.btn:hover { background: rgba(0, 255, 204, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="box" id="statusBox">
+        <h2>🚀 Đang chuyển hướng...</h2>
+        <p id="msg">Vui lòng chờ trong giây lát.</p>
+    </div>
+
+    <script>
+        (async function () {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            const repo = parts[0] || 'go';
+            const slug = decodeURIComponent(parts.slice(1).join('/')).toLowerCase();
+            const box = document.getElementById('statusBox');
+
+            try {
+                const res = await fetch('/' + repo + '/links.json?t=' + Date.now());
+                const rawLinks = await res.json();
+
+                // Chuẩn hóa tên link về chữ thường để gõ hoa/thường đều vào được
+                const links = {};
+                for (const key in rawLinks) {
+                    links[key.toLowerCase()] = rawLinks[key];
+                }
+
+                if (slug && links[slug]) {
+                    const target = links[slug];
+                    document.getElementById('msg').innerHTML =
+                        `Đang mở đích đến...<br><a class="btn" href="${target}">Bấm nếu không tự chuyển</a>`;
+                    window.location.replace(target);
+                } else {
+                    box.innerHTML = `
+                        <h2 style="color: #ff007f;">❌ Không tìm thấy link!</h2>
+                        <p>Mã rút gọn <b>/${slug || ''}</b> không tồn tại hoặc đã bị xóa.</p>
+                        <a class="btn" href="/${repo}/">Quay lại trang chủ</a>
+                    `;
+                }
+            } catch (err) {
+                box.innerHTML = `
+                    <h2 style="color: #ff007f;">⚠️ Lỗi đọc danh sách link</h2>
+                    <p>Kiểm tra lại cú pháp dấu phẩy trong file <b>links.json</b> nhé!</p>
+                `;
+            }
+        })();
+    </script>
+</body>
+</html>
